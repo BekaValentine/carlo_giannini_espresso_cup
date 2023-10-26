@@ -251,8 +251,135 @@ module metal_cup_upper() {
   circle(r = metal_upper_wall_radius);
 }
 
+saucer_metal_base_inner_diameter = 66*mm;
+saucer_metal_base_inner_radius = saucer_metal_base_inner_diameter / 2;
+saucer_metal_base_radius_delta = 16.5*mm;
+saucer_plastic_base_upper_side_depth_to_center_plastic = 8*mm;
+saucer_plastic_base_upper_side_inner_radius = saucer_metal_base_inner_radius + saucer_metal_base_radius_delta;
+saucer_plastic_base_upper_side_total_step_radius = 12.8*mm;
+saucer_plastic_base_upper_side_step_length = 2*mm;
+saucer_plastic_base_upper_side_step_count = 5;
+saucer_plastic_base_upper_side_step_and_riser_length = saucer_plastic_base_upper_side_total_step_radius / saucer_plastic_base_upper_side_step_count;
+saucer_plastic_base_upper_side_riser_length = saucer_plastic_base_upper_side_step_and_riser_length - saucer_plastic_base_upper_side_step_length;
+saucer_plastic_base_upper_side_step_total_height = 6*mm;
+saucer_metal_base_height = saucer_plastic_base_upper_side_depth_to_center_plastic - saucer_plastic_base_upper_side_step_total_height;
+saucer_metal_base_radius = saucer_metal_base_height/2;
+saucer_plastic_base_upper_side_step_height = saucer_plastic_base_upper_side_step_total_height/saucer_plastic_base_upper_side_step_count;
+saucer_plastic_base_upper_side_outer_lip_height = 2*mm;
+saucer_plastic_base_lower_side_support_ring_outer_diameter = 73*mm;
+saucer_plastic_base_lower_side_support_ring_outer_radius = saucer_plastic_base_lower_side_support_ring_outer_diameter / 2;
+saucer_plastic_base_lower_side_support_ring_thickness = 2.75*mm;
+saucer_plastic_base_lower_side_support_ring_outer_height = 3.3*mm;
+saucer_plastic_base_lower_side_support_ring_inner_height = 2.4*mm;
+saucer_plastic_base_lower_side_support_ring_inner_radius = saucer_plastic_base_lower_side_support_ring_outer_radius - saucer_plastic_base_lower_side_support_ring_thickness;
+saucer_plastic_base_lower_side_radius_of_rounded_edge_at_rise = 2*mm;
+saucer_plastic_base_total_height = 12*mm;
+saucer_plastic_base_conical_height = saucer_plastic_base_total_height - saucer_plastic_base_lower_side_support_ring_outer_height - saucer_plastic_base_upper_side_outer_lip_height;
+saucer_plastic_base_total_radius = saucer_plastic_base_upper_side_inner_radius + saucer_plastic_base_upper_side_total_step_radius; 
+saucer_plastic_base_lower_side_conical_angle = 34*deg;
+saucer_plastic_base_lower_side_conical_rise_length = saucer_plastic_base_conical_height / tan(saucer_plastic_base_lower_side_conical_angle); // tan(theta) = height/length => length = height/tan(theta)
+//saucer_plastic_base_lower_side_radius_at_rise = 50*mm;
+saucer_plastic_base_lower_side_radius_at_rise = saucer_plastic_base_total_radius - saucer_plastic_base_lower_side_conical_rise_length;
 
-plastic_cup_lower();
+module plastic_saucer_body_outer_form() {
+
+  // main conical form
+  translate([0,0,saucer_plastic_base_lower_side_support_ring_outer_height])
+  cylinder(
+    r1 = saucer_plastic_base_lower_side_radius_at_rise,
+    r2 = saucer_plastic_base_total_radius,
+    h = saucer_plastic_base_conical_height
+  );
+
+  // outer lip
+  translate([
+    0,
+    0,
+    saucer_plastic_base_lower_side_support_ring_outer_height + saucer_plastic_base_conical_height
+  ])
+  cylinder(
+    r = saucer_plastic_base_total_radius,
+    h = saucer_plastic_base_upper_side_outer_lip_height
+  );
+
+  // support ring
+
+  difference() {
+    cylinder(
+      h = saucer_plastic_base_lower_side_support_ring_outer_height,
+      r = saucer_plastic_base_lower_side_support_ring_outer_radius
+    );
+    
+    translate([0,0,-1*mm])
+    cylinder(
+      r = saucer_plastic_base_lower_side_support_ring_inner_radius,
+      h = 1*mm + saucer_plastic_base_lower_side_support_ring_inner_height
+    );
+  }
+
+}
+
+module plastic_saucer_body_inner_form() {
+
+  // upper spacer ring to guarantee good subtraction
+  translate([
+    0,
+    0,
+    saucer_plastic_base_lower_side_support_ring_outer_height
+      + saucer_plastic_base_conical_height
+      + saucer_plastic_base_upper_side_outer_lip_height
+  ])
+  cylinder(
+    r = saucer_plastic_base_total_radius - saucer_plastic_base_upper_side_step_length,
+    h = 10*mm
+  );
+
+  // steps
+  for (i = [0:saucer_plastic_base_upper_side_step_count-1]) {
+    translate([
+      0,
+      0,
+      saucer_plastic_base_lower_side_support_ring_outer_height
+        + saucer_plastic_base_conical_height
+        + saucer_plastic_base_upper_side_outer_lip_height
+        - saucer_plastic_base_upper_side_step_height
+        - i*saucer_plastic_base_upper_side_step_height
+    ])
+    cylinder(
+      r1 = saucer_plastic_base_total_radius
+            - (i+1)*saucer_plastic_base_upper_side_step_length
+            - (i+1)*saucer_plastic_base_upper_side_riser_length,
+      r2 = saucer_plastic_base_total_radius
+            - (i+1)*saucer_plastic_base_upper_side_step_length
+            - i*saucer_plastic_base_upper_side_riser_length,
+      h = saucer_plastic_base_upper_side_step_height
+    );
+  }
+
+  // disk down to the bottom plastic
+  translate([
+    0,
+    0,
+    saucer_plastic_base_lower_side_support_ring_outer_height
+      + saucer_plastic_base_conical_height
+      + saucer_plastic_base_upper_side_outer_lip_height
+      - saucer_plastic_base_upper_side_depth_to_center_plastic
+  ])
+  cylinder(
+    r = saucer_metal_base_inner_radius+saucer_metal_base_radius,
+    h = saucer_plastic_base_upper_side_depth_to_center_plastic
+  );
+}
+
+module plastic_saucer_body() {
+  difference() {
+    plastic_saucer_body_outer_form();
+    plastic_saucer_body_inner_form();
+  }
+}
+
+
+// plastic_cup_lower();
 
 // rotate([180,0,0])
 // plastic_cup_base();
@@ -264,3 +391,6 @@ plastic_cup_lower();
 
 
 // plastic_cup_handle();
+
+plastic_saucer_body();
+
